@@ -7,6 +7,7 @@ import operator
 from scipy.optimize import curve_fit
 import matplotlib.colors as mcolors
 
+import networkx as nx
 
 from tqdm import tqdm
 import time
@@ -66,9 +67,9 @@ class Nodes(object):
         beta = self.beta if beta is None else beta
 
         nodes = {}
-        for i in tqdm(range(n), leave = False, desc = 'Adding nodes'):
+        for i in tqdm(range(1, n+1), leave = False, desc = 'Adding nodes'):
             nodes = Nodes.add_node(nodes, i+1,m, T)
-            nodes = Nodes.step_nodes(nodes, beta,i+1)
+            nodes = Nodes.step_nodes(nodes, beta,T)
         self.nodes = nodes.copy()
         return nodes
 
@@ -94,29 +95,29 @@ class Nodes(object):
         sorted_dists = sorted(dists.items(), key=operator.itemgetter(1))
         #print(sorted_dists)
 
-        if n< m:
+        if n <= m:
             for key in nodes.keys():
                 if key != n:
                     nodes[n]['conns'].append(key)
             m_put = m
-
-        while m_put < m:
-            try:
-                v = sorted_dists[nodeid][0]
-                if v not in nodes[n]['conns']:
-                    prob = 1/(1 + np.exp((sorted_dists[nodeid][1]-np.log(n))/T ))
-                    r = np.random.rand()
-                    if r<=prob:
-                        nodes[n]['conns'].append(v)
-                        m_put +=1
-                        nodeid +=1
-                    else:
-                        #print("Unable to attach:", prob, r, ' nodeid:', nodeid)
-                        nodeid +=1
-                #print('added:', v)
-            except IndexError:
-                #print('not enough nodes yet')
-                m_put = m
+        else:
+            while m_put < m:
+                try:
+                    v = sorted_dists[nodeid][0]
+                    if v not in nodes[n]['conns']:
+                        prob = 1/(1 + np.exp((sorted_dists[nodeid][1]-np.log(n))/T ))
+                        r = np.random.rand()
+                        if r<=prob:
+                            nodes[n]['conns'].append(v)
+                            m_put +=1
+                            nodeid +=1
+                        else:
+                            #print("Unable to attach:", prob, r, ' nodeid:', nodeid)
+                            nodeid +=1
+                    #print('added:', v)
+                except IndexError:
+                    #print('not enough nodes yet')
+                    m_put = m
 
         for v in nodes[n]['conns']:
             if n not in nodes[v]['conns']:
@@ -293,7 +294,7 @@ class Nodes(object):
 
         return G
 
-    def plotnodes(nodes, delta = .15, save_as = None, ax = None ) -> plt.ax:
+    def plotnodes(nodes, delta = .15, save_as = None, ax = None ):
         """
         Creating a hyperbolic plot.
 
@@ -302,7 +303,7 @@ class Nodes(object):
             save_as:    str (def: None), save as figure
             ax:         plt.ax (def: None), plotting on given axis
 
-        Returns the modified plt.ax object.
+        Returns the modified ax object.
         """
         ax = plt.subplot(111, projection='polar') if ax is None else ax
 
